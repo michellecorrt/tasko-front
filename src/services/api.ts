@@ -1,99 +1,82 @@
-import axios from 'axios';
-import { AuthTokens, LoginRequest, RegisterRequest, User, Workspace, Board, List, Card, Comment } from '../types';
 
-//const BASE_URL = 'http://192.168.100.36:4000/api';
-const BASE_URL = 'http://localhost:4000/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const api = axios.create({
-  baseURL: BASE_URL,
-  timeout: 10000,
-});
 
-// Token management
-let accessToken: string | null = null;
+const BASE_URL = 'https://tasko-backend-lq01.onrender.com/api';
 
-export const setAuthToken = (token: string) => {
-  accessToken = token;
-  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+const getHeaders = async () => {
+  const tokenData = await AsyncStorage.getItem('authTokens');
+  const tokens = tokenData ? JSON.parse(tokenData) : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(tokens?.accessToken ? { Authorization: `Bearer ${tokens.accessToken}` } : {}),
+  };
 };
 
-export const removeAuthToken = () => {
-  accessToken = null;
-  delete api.defaults.headers.common['Authorization'];
+const request = async (method: string, path: string, body?: any) => {
+  const headers = await getHeaders();
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    const error: any = new Error(data.message || 'Request failed');
+    error.response = { status: res.status, data };
+    throw error;
+  }
+
+  return { data };
 };
 
-// Interfaces
-export interface RegisterRequest {
-  name: string;
-  lastName: string;
-  email: string;
-  password: string;
-  phone: string;
-  isAdmin?: boolean;
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-// Auth API
+// ── Auth ──────────────────────────────────────────────────────────
 export const authAPI = {
-  register: (data: RegisterRequest) => api.post<{ user: User; tokens: AuthTokens }>('/auth/register', data),
-  login: (data: LoginRequest) => api.post<{ user: User; tokens: AuthTokens }>('/auth/login', data),
+  login: (body: { email: string; password: string }) =>
+    request('POST', '/auth/login', body),
+
+  register: (body: {
+    name: string;
+    lastName: string;
+    email: string;
+    password: string;
+    phone: string;
+    isAdmin?: boolean;
+  }) => request('POST', '/auth/register', body),
 };
 
-// User API
-export const userAPI = {
-  getUsers: () => api.get<User[]>('/users'),
-  getUser: (id: string) => api.get<User>(`/users/${id}`),
-  updateUser: (id: string, data: Partial<User>) => api.patch<User>(`/users/${id}`, data),
-  deleteUser: (id: string) => api.delete(`/users/${id}`),
-  setAdmin: (id: string, isAdmin: boolean) => api.patch(`/users/${id}/admin`, { isAdmin }),
-};
-
-// Workspace API
+// ── Workspaces ────────────────────────────────────────────────────
 export const workspaceAPI = {
-  create: (name: string) => api.post<Workspace>('/workspaces', { name }),
-  getAll: () => api.get<Workspace[]>('/workspaces'),
-  update: (id: string, name: string) => api.patch<Workspace>(`/workspaces/${id}`, { name }),
-  delete: (id: string) => api.delete(`/workspaces/${id}`),
+  getAll: () => request('GET', '/workspaces'),
+  create: (name: string) => request('POST', '/workspaces', { name }),
+  update: (id: string, name: string) => request('PUT', `/workspaces/${id}`, { name }),
+  delete: (id: string) => request('DELETE', `/workspaces/${id}`),
 };
 
-// Board API
+// ── Boards ────────────────────────────────────────────────────────
 export const boardAPI = {
-  create: (data: { workspaceId: string; name: string; integrationToken?: string }) => 
-    api.post<Board>('/boards', data),
-  getByWorkspace: (workspaceId: string) => api.get<Board[]>(`/boards?workspace=${workspaceId}`),
-  update: (id: string, data: Partial<Board>) => api.patch<Board>(`/boards/${id}`, data),
-  delete: (id: string) => api.delete(`/boards/${id}`),
+  getByWorkspace: (workspaceId: string) =>
+    request('GET', `/boards?workspaceId=${workspaceId}`),
+  create: (body: { workspaceId: string; name: string }) =>
+    request('POST', '/boards', body),
+  update: (id: string, body: Partial<{ name: string }>) =>
+    request('PUT', `/boards/${id}`, body),
+  delete: (id: string) => request('DELETE', `/boards/${id}`),
 };
 
-// List API
+// ── Lists ─────────────────────────────────────────────────────────
 export const listAPI = {
-  getByBoard: (boardId: string) => api.get<List[]>(`/lists?board=${boardId}`),
-  create: (data: { boardId: string; name: string; prevOrder?: number; nextOrder?: number }) => 
-    api.post<List>('/lists', data),
-  move: (id: string, data: { boardId?: string; prevOrder?: number; nextOrder?: number }) => 
-    api.patch<List>(`/lists/${id}/move`, data),
-  delete: (id: string) => api.delete(`/lists/${id}`),
+  getByBoard: (boardId: string) => request('GET', `/lists?boardId=${boardId}`),
+  create: (body: any) => request('POST', '/lists', body),
 };
 
-// Card API
+// ── Cards ─────────────────────────────────────────────────────────
 export const cardAPI = {
-  getByList: (listId: string) => api.get<Card[]>(`/cards?list=${listId}`),
-  getByBoard: (boardId: string) => api.get<Card[]>(`/cards?board=${boardId}`),
-  create: (data: { boardId: string; listId: string; title: string; prevOrder?: number; nextOrder?: number }) => 
-    api.post<Card>('/cards', data),
-  update: (id: string, data: Partial<Card>) => api.patch<Card>(`/cards/${id}`, data),
-  move: (id: string, data: { listId?: string; prevOrder?: number; nextOrder?: number }) => 
-    api.patch<Card>(`/cards/${id}/move`, data),
-  delete: (id: string) => api.delete(`/cards/${id}`),
-};
-
-// Comment API
-export const commentAPI = {
-  getByCard: (cardId: string) => api.get<Comment[]>(`/comments?card=${cardId}`),
-  create: (data: { cardId: string; text: string }) => api.post<Comment>('/comments', data),
-  delete: (id: string) => api.delete(`/comments/${id}`),
+  getByBoard: (boardId: string) => request('GET', `/cards?boardId=${boardId}`),
+  create: (body: any) => request('POST', '/cards', body),
+  update: (id: string, body: any) => request('PUT', `/cards/${id}`, body),
+  delete: (id: string) => request('DELETE', `/cards/${id}`),
 };

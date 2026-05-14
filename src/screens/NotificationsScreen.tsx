@@ -102,9 +102,7 @@ export default function NotificationsScreen({ navigation }: any) {
           markAsRead(item._id);
         }
         
-        if (item.taskId) {
-          navigation.navigate('CardDetails', { cardId: item.taskId });
-        }
+// no navegar sin card completo
       }}
     >
       <View style={styles.notificationContent}>

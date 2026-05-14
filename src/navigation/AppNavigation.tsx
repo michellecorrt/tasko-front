@@ -305,7 +305,8 @@ const AppStack = () => (
 );
 
 export default function AppNavigation() {
-  const { isAuthenticated, loading } = useAuth();
+  const { loading } = useAuth();
+  const { isAuthenticated } = useAppStore();
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -331,6 +332,7 @@ export default function AppNavigation() {
   console.log('isAuthenticated:', isAuthenticated);
   console.log('showSplash:', showSplash);
   console.log('Final decision:', showSplash ? 'SPLASH' : (isAuthenticated ? 'APP' : 'AUTH'));
+  
 
   return (
     <NavigationContainer>
@@ -341,15 +343,13 @@ export default function AppNavigation() {
           <Stack.Screen 
             name="App" 
             component={AppStack}
-            
-            key={isAuthenticated ? 'authenticated' : 'not-authenticated'}
+            key="authenticated"
           />
         ) : (
           <Stack.Screen 
             name="Auth" 
             component={AuthStack}
-           
-            key={isAuthenticated ? 'authenticated' : 'not-authenticated'}
+            key="not-authenticated"
           />
         )}
       </Stack.Navigator>

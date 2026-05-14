@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../utils/hooks';
 import { useAppStore } from '../store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ProfileScreen({ navigation }: any) {
   const { logout, user } = useAuth();
@@ -98,49 +99,12 @@ export default function ProfileScreen({ navigation }: any) {
 
 
   const handleLogout = () => {
-    Alert.alert(
-      'Cerrar sesión', 
-      '¿Estás seguro de que quieres cerrar sesión?', 
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Cerrar sesión', 
-          style: 'destructive', 
-          onPress: async () => {
-            try {
-              console.log('🔄 ProfileScreen: Iniciando logout...');
-            
-              
-              const result = await logout();
-              
-              if (result.success) {
-                console.log('ProfileScreen: Logout exitoso');
-                
-              } else {
-                console.error('ProfileScreen: Error en logout:', result.error);
-
-                if (result.error && !result.error.includes('advertencias')) {
-                  Alert.alert('Advertencia', result.error);
-                }
-              }
-            } catch (error) {
-              console.error('ProfileScreen: Error inesperado durante logout:', error);
- 
-              try {
-                console.log('Intentando logout forzado...');
-                await logout(); 
-              } catch (secondError) {
-                console.error('Error en segundo intento de logout:', secondError);
-                Alert.alert(
-                  'Error', 
-                  'Hubo un problema cerrando la sesión. Por favor, cierra y abre la app.'
-                );
-              }
-            }
-          }
-        }
-      ]
-    );
+    console.log('🔴 HANDLE LOGOUT CALLED');
+    const confirmed = window.confirm('¿Estás seguro de que quieres cerrar sesión?');
+    if (confirmed) {
+      AsyncStorage.clear().catch(() => {});
+      logout();
+    }
   };
 
   const showComingSoon = (feature: string) => {
