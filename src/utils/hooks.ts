@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppStore } from '../store';
 import { authAPI, workspaceAPI, boardAPI, listAPI, cardAPI } from '../services/api';
 import { AuthTokens, User } from '../types';

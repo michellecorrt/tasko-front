@@ -1,7 +1,4 @@
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-
 const BASE_URL = 'https://tasko-backend-lq01.onrender.com/api';
 
 
